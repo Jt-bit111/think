@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>闪念记录</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a1a;min-height:100vh;padding:2rem 1rem;}
+.container{max-width:680px;margin:0 auto;}
+h1{font-size:22px;font-weight:500;margin-bottom:1.5rem;}
+
+.capture-box{background:#fff;border:1.5px solid #c5c5c0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:10px;transition:border-color .2s;}
+.capture-box:focus-within{border-color:#185FA5;}
+.capture-box textarea{flex:1;border:none;outline:none;resize:none;font-size:15px;font-family:inherit;color:#1a1a1a;background:transparent;line-height:1.6;min-height:42px;max-height:160px;overflow-y:auto;}
+.capture-box textarea::placeholder{color:#bbb;}
+.send-btn{background:#185FA5;border:none;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:2px;transition:background .15s;}
+.send-btn:hover{background:#0C447C;}
+.send-btn svg{fill:white;width:16px;height:16px;}
+
+.stats-row{display:flex;gap:10px;margin-bottom:1.5rem;}
+.stat{flex:1;background:#fff;border:1px solid #e8e8e5;border-radius:8px;padding:.75rem 1rem;text-align:center;}
+.stat-num{font-size:22px;font-weight:500;color:#1a1a1a;}
+.stat-label{font-size:11px;color:#888;margin-top:2px;}
+
+.tabs{display:flex;gap:0;margin-bottom:1rem;border-bottom:1px solid #e8e8e5;}
+.tab{padding:8px 18px;font-size:13px;cursor:pointer;color:#888;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;margin-bottom:-1px;font-family:inherit;transition:color .15s;}
+.tab.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:500;}
+.tab:hover:not(.active){color:#1a1a1a;}
+
+.filter-row{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;}
+.tag-filter{font-size:12px;padding:4px 11px;border-radius:20px;border:1px solid #ddd;background:transparent;cursor:pointer;color:#888;font-family:inherit;transition:all .15s;}
+.tag-filter.active{background:#E6F1FB;color:#0C447C;border-color:#185FA5;}
+.tag-filter:hover:not(.active){background:#ebebeb;}
+
+.item-list{display:flex;flex-direction:column;gap:8px;}
+.item{background:#fff;border:1px solid #e8e8e5;border-radius:8px;padding:.75rem 1rem;display:flex;align-items:flex-start;gap:10px;}
+.item.done-item{opacity:.55;}
+.check-btn{width:20px;height:20px;border-radius:50%;border:1.5px solid #ccc;background:transparent;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.check-btn:hover{border-color:#639922;}
+.check-btn.checked{background:#639922;border-color:#639922;}
+.check-btn.checked::after{content:'';display:block;width:6px;height:10px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);}
+.item-body{flex:1;min-width:0;}
+.item-text{font-size:14px;color:#1a1a1a;line-height:1.5;word-break:break-word;}
+.item.done-item .item-text{text-decoration:line-through;color:#aaa;}
+.item-meta{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;}
+.tag-pill{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
+.tag-idea{background:#EEEDFE;color:#3C3489;}
+.tag-todo{background:#FAEEDA;color:#633806;}
+.tag-note{background:#E1F5EE;color:#085041;}
+.time-label{font-size:11px;color:#bbb;}
+.del-btn{background:none;border:none;cursor:pointer;color:#ccc;font-size:18px;opacity:0;transition:opacity .15s;padding:0 2px;line-height:1;flex-shrink:0;}
+.item:hover .del-btn{opacity:1;}
+.del-btn:hover{color:#c0392b;}
+.empty-msg{text-align:center;padding:3rem 1rem;color:#aaa;font-size:14px;}
+
+.hint{font-size:12px;color:#bbb;text-align:center;margin-top:1.5rem;}
+@media(max-width:480px){.stats-row{display:grid;grid-template-columns:1fr 1fr;}.tab{padding:8px 12px;font-size:12px;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>闪念记录</h1>
+
+  <div class="capture-box">
+    <textarea id="inp" placeholder="有什么新想法或待办？直接输入，回车发送…" rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+    <button class="send-btn" onclick="addItem()" title="发送 (Enter)">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">全部</div></div>
+    <div class="stat"><div class="stat-num" id="s-todo">0</div><div class="stat-label">待完成</div></div>
+    <div class="stat"><div class="stat-num" id="s-done">0</div><div class="stat-label">已完成</div></div>
+    <div class="stat"><div class="stat-num" id="s-ideas">0</div><div class="stat-label">想法</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('all',this)">全部</button>
+    <button class="tab" onclick="setTab('pending',this)">待完成</button>
+    <button class="tab" onclick="setTab('done',this)">已完成</button>
+    <button class="tab" onclick="setTab('idea',this)">想法</button>
+  </div>
+
+  <div class="filter-row">
+    <button class="tag-filter active" onclick="setTagFilter('all',this)">全部标签</button>
+    <button class="tag-filter" onclick="setTagFilter('idea',this)">💡 想法</button>
+    <button class="tag-filter" onclick="setTagFilter('todo',this)">✅ 待办</button>
+    <button class="tag-filter" onclick="setTagFilter('note',this)">📝 笔记</button>
+  </div>
+
+  <div class="item-list" id="list"></div>
+  <p class="hint">数据自动保存在本地浏览器 · Shift+Enter 换行 · Enter 发送</p>
+</div>
+
+<script>
+const STORAGE_KEY='quick_capture_v1';
+function load(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return[];}}
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(items));}
+
+let items=load();
+let nextId=items.length?Math.max(...items.map(x=>x.id))+1:1;
+let currentTab='all';
+let currentTag='all';
+
+function autoTag(text){
+  const t=text.toLowerCase();
+  if(/想法|点子|如果|要不|也许|感觉|可以试|研究|探索|考虑|尝试/.test(t)) return 'idea';
+  if(/买|记得|别忘|提醒|约|打电话|发邮件|回复|完成|做|去|交|提交|还|还书|还钱/.test(t)) return 'todo';
+  return 'note';
+}
+
+function timeAgo(ts){
+  const diff=Date.now()-ts,m=Math.floor(diff/60000);
+  if(m<1) return '刚刚';
+  if(m<60) return m+'分钟前';
+  const h=Math.floor(m/60);
+  if(h<24) return h+'小时前';
+  const d=Math.floor(h/24);
+  if(d<30) return d+'天前';
+  return Math.floor(d/30)+'个月前';
+}
+
+function tagLabel(tag){return tag==='idea'?'💡 想法':tag==='todo'?'✅ 待办':'📝 笔记';}
+function tagClass(tag){return tag==='idea'?'tag-idea':tag==='todo'?'tag-todo':'tag-note';}
+
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,160)+'px';}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addItem();}}
+
+function addItem(){
+  const el=document.getElementById('inp');
+  const text=el.value.trim();
+  if(!text) return;
+  items.unshift({id:nextId++,text,tag:autoTag(text),done:false,ts:Date.now()});
+  el.value='';el.style.height='auto';
+  save();render();
+}
+
+function toggleDone(id){
+  const it=items.find(x=>x.id===id);
+  if(it){it.done=!it.done;save();render();}
+}
+
+function deleteItem(id){
+  items=items.filter(x=>x.id!==id);save();render();
+}
+
+function setTab(tab,btn){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');render();
+}
+
+function setTagFilter(tag,btn){
+  currentTag=tag;
+  document.querySelectorAll('.tag-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');render();
+}
+
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function render(){
+  let list=items;
+  if(currentTab==='pending') list=list.filter(x=>!x.done);
+  else if(currentTab==='done') list=list.filter(x=>x.done);
+  else if(currentTab==='idea') list=list.filter(x=>x.tag==='idea');
+  if(currentTag!=='all') list=list.filter(x=>x.tag===currentTag);
+
+  const el=document.getElementById('list');
+  if(!list.length){
+    const msgs={all:'还没有记录，输入第一条吧 ✨',pending:'没有待完成的事项 🎉',done:'还没有完成的事项',idea:'还没有记录想法 💡'};
+    el.innerHTML=`<div class="empty-msg">${msgs[currentTab]||'没有内容'}</div>`;
+  } else {
+    el.innerHTML=list.map(it=>`
+      <div class="item${it.done?' done-item':''}">
+        <button class="check-btn${it.done?' checked':''}" onclick="toggleDone(${it.id})" title="${it.done?'标记未完成':'标记完成'}"></button>
+        <div class="item-body">
+          <div class="item-text">${esc(it.text)}</div>
+          <div class="item-meta">
+            <span class="tag-pill ${tagClass(it.tag)}">${tagLabel(it.tag)}</span>
+            <span class="time-label">${timeAgo(it.ts)}</span>
+          </div>
+        </div>
+        <button class="del-btn" onclick="deleteItem(${it.id})" title="删除">×</button>
+      </div>`).join('');
+  }
+
+  document.getElementById('s-total').textContent=items.length;
+  document.getElementById('s-todo').textContent=items.filter(x=>!x.done).length;
+  document.getElementById('s-done').textContent=items.filter(x=>x.done).length;
+  document.getElementById('s-ideas').textContent=items.filter(x=>x.tag==='idea').length;
+}
+
+render();
+</script>
+</body>
+</html>
